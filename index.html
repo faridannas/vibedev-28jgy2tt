@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 Party Playlist Voting Widget | Pick the Next Track!</title>
+    <meta name="description" content="A real-time party playlist voting app where guests vote for the next track to play. Add songs, upvote favorites, and watch the top hits float to the top!">
+    <meta name="keywords" content="party playlist, song voting, dj track picker, music voting app, crowd jukebox">
+    <meta name="author" content="Party DJ Voting">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Dynamic Background Lights & Audio Equalizer Animation -->
+    <div class="ambient-glow bg-glow-1"></div>
+    <div class="ambient-glow bg-glow-2"></div>
+    <div class="ambient-glow bg-glow-3"></div>
+
+    <div class="app-container">
+
+        <!-- HEADER SECTION -->
+        <header class="party-header">
+            <div class="header-badge">
+                <span class="live-dot"></span> LIVE CROWD JUKEBOX
+            </div>
+
+            <div class="brand-title-wrap">
+                <div class="vinyl-disc-icon" id="vinylIcon" title="Click to spin record!">
+                    <div class="vinyl-grooves"></div>
+                    <div class="vinyl-center">🎶</div>
+                </div>
+                <h1 class="main-title">
+                    PARTY <span class="text-gradient">PLAYLIST</span> VOTES
+                </h1>
+            </div>
+
+            <p class="subtitle">
+                Vote for your favorite tracks! The track with the most votes automatically becomes the <span class="highlight-pink">#1 Next Track</span>.
+            </p>
+
+            <div class="top-controls-bar">
+                <button id="soundToggleBtn" class="pill-btn sound-btn" aria-label="Toggle Sound Effects">
+                    <span id="soundIcon">🔊</span> <span id="soundLabel">Sound FX ON</span>
+                </button>
+                <div class="total-stats-pill">
+                    <span class="icon">🔥</span>
+                    <span>Total Votes: <strong id="totalVotesCount">0</strong></span>
+                </div>
+                <div class="total-stats-pill">
+                    <span class="icon">🎵</span>
+                    <span>Total Songs: <strong id="totalSongsCount">0</strong></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN APP CONTENT GRID -->
+        <main class="party-grid">
+
+            <!-- LEFT COLUMN: ADD SONG FORM & TOP CROWD PICK HERO -->
+            <section class="left-panel">
+
+                <!-- TOP PICK HERO CARD -->
+                <div class="top-pick-card" id="topPickCard">
+                    <div class="top-pick-header">
+                        <span class="trophy-badge">🏆 CROWD FAVORITE #1</span>
+                        <div class="equalizer-bars">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
+                    <div class="top-pick-body">
+                        <div class="top-pick-info">
+                            <h2 id="topPickTitle" class="top-song-title">No songs yet</h2>
+                            <p id="topPickArtist" class="top-song-artist">Add a track below to start the party!</p>
+                        </div>
+                        <div class="top-pick-votes" id="topPickVotes">
+                            <span class="vote-number" id="topPickVoteNum">0</span>
+                            <span class="vote-unit">VOTES</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADD SONG FORM CARD -->
+                <div class="card form-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <span class="icon">➕</span> Request A Track
+                        </h2>
+                        <span class="card-subtitle">Anyone can drop a song!</span>
+                    </div>
+
+                    <form id="addSongForm" class="song-form" novalidate>
+                        <div class="form-group">
+                            <label for="songTitleInput" class="form-label">Song Title <span class="required-star">*</span></label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🎵</span>
+                                <input 
+                                    type="text" 
+                                    id="songTitleInput" 
+                                    class="form-input" 
+                                    placeholder="e.g. Levitating, Blinding Lights..." 
+                                    required
+                                    maxlength="80"
+                                    autocomplete="off"
+                                >
+                            </div>
+                            <span class="error-msg" id="titleError">Please enter a song title</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="artistInput" class="form-label">Artist Name <span class="optional-tag">(Optional)</span></label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🎤</span>
+                                <input 
+                                    type="text" 
+                                    id="artistInput" 
+                                    class="form-input" 
+                                    placeholder="e.g. Dua Lipa, The Weeknd..." 
+                                    maxlength="80"
+                                    autocomplete="off"
+                                >
+                            </div>
+                        </div>
+
+                        <button type="submit" id="addSongBtn" class="btn btn-primary add-btn">
+                            <span class="btn-text">Add To Playlist</span>
+                            <span class="btn-icon">⚡</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ACTION TOOLS PANEL -->
+                <div class="card tools-card">
+                    <h3 class="tools-title">Playlist Management</h3>
+                    <div class="tools-btn-group">
+                        <button id="loadSamplesBtn" class="btn btn-secondary btn-sm" title="Add pre-made popular party tracks">
+                            ✨ Load Sample Hits
+                        </button>
+                        <button id="clearAllBtn" class="btn btn-danger btn-sm" title="Delete all songs and reset votes">
+                            🗑️ Clear All
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- RIGHT COLUMN: LIVE PLAYLIST LIST -->
+            <section class="right-panel">
+
+                <div class="card playlist-card">
+                    <div class="playlist-header">
+                        <div class="playlist-header-title">
+                            <h2 class="card-title">
+                                <span class="icon">🎧</span> Live Queue
+                            </h2>
+                            <span class="live-tag">Auto-Sorted by Votes</span>
+                        </div>
+
+                        <div class="search-filter-wrap">
+                            <input 
+                                type="text" 
+                                id="searchInput" 
+                                class="search-input" 
+                                placeholder="🔍 Search songs or artists..."
+                                aria-label="Search Playlist"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- SONGS CONTAINER -->
+                    <div id="playlistContainer" class="playlist-list" aria-live="polite">
+                        <!-- Dynamic Song Items Rendered Here -->
+                    </div>
+
+                    <!-- EMPTY STATE DISPLAY -->
+                    <div id="emptyState" class="empty-state hidden">
+                        <div class="empty-icon">🪩</div>
+                        <h3>The Queue Is Empty!</h3>
+                        <p>No tracks in the queue right now. Be the DJ and add the first song!</p>
+                        <button id="emptyLoadBtn" class="btn btn-primary btn-sm">
+                            🚀 Load Top Party Tracks
+                        </button>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="party-footer">
+            <p>Party Playlist Voting Widget &bull; Made for ultimate crowd energy 🎉</p>
+        </footer>
+
+    </div>
+
+    <!-- CLEAR CONFIRMATION MODAL -->
+    <div id="confirmModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-card">
+            <div class="modal-icon">⚠️</div>
+            <h3 id="modalTitle">Clear Entire Playlist?</h3>
+            <p>Are you sure you want to delete all songs and reset votes? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button id="cancelModalBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmClearBtn" class="btn btn-danger">Yes, Clear All!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO EFFECTS (Web Audio API Synthesizer fallback script in app.js) -->
+    <script src="app.js"></script>
+</body>
+</html>
