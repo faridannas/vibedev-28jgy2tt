@@ -1,26 +1,31 @@
 /**
- * PARTY PLAYLIST VOTING WIDGET - APPLICATION JS
- * Single-Page Real-time Song Voting App
+ * JUKEBOX.VIBE - SPOTIFY/FESTIFY INSPIRED PLAYLIST ENGINE
  */
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --------------------------------------------------------------------------
-    // 1. App State & Initial Configuration
-    // --------------------------------------------------------------------------
-    const STORAGE_KEY = 'party_playlist_songs_v1';
+    const STORAGE_KEY = 'party_playlist_songs_v2';
     const SOUND_SETTING_KEY = 'party_playlist_sound_enabled';
 
     let songs = [];
-    let isSoundEnabled = localStorage.getItem(SOUND_SETTING_KEY) !== 'false'; // Default ON
+    let isSoundEnabled = localStorage.getItem(SOUND_SETTING_KEY) !== 'false';
 
-    // Preloaded party sample hits for initial start
-    const SAMPLE_PARTY_TRACKS = [
-        { id: 'sample_1', title: 'Levitating', artist: 'Dua Lipa', votes: 15, createdAt: Date.now() - 50000 },
-        { id: 'sample_2', title: 'Blinding Lights', artist: 'The Weeknd', votes: 12, createdAt: Date.now() - 40000 },
-        { id: 'sample_3', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', votes: 9, createdAt: Date.now() - 30000 },
-        { id: 'sample_4', title: 'As It Was', artist: 'Harry Styles', votes: 6, createdAt: Date.now() - 20000 },
-        { id: 'sample_5', title: 'Dance The Night', artist: 'Dua Lipa', votes: 4, createdAt: Date.now() - 10000 }
+    // Sample top hits
+    const SAMPLE_TRACKS = [
+        { id: 'sample_1', title: 'Espresso', artist: 'Sabrina Carpenter', votes: 18, createdAt: Date.now() - 50000 },
+        { id: 'sample_2', title: 'Levitating', artist: 'Dua Lipa', votes: 14, createdAt: Date.now() - 40000 },
+        { id: 'sample_3', title: 'Blinding Lights', artist: 'The Weeknd', votes: 11, createdAt: Date.now() - 30000 },
+        { id: 'sample_4', title: 'As It Was', artist: 'Harry Styles', votes: 7, createdAt: Date.now() - 20000 },
+        { id: 'sample_5', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', votes: 4, createdAt: Date.now() - 10000 }
+    ];
+
+    // Album cover gradient generators
+    const GRADIENTS = [
+        'linear-gradient(135deg, #1db954 0%, #00e676 100%)',
+        'linear-gradient(135deg, #7c4dff 0%, #b388ff 100%)',
+        'linear-gradient(135deg, #ff2a85 0%, #ff70a6 100%)',
+        'linear-gradient(135deg, #ffb300 0%, #ffe082 100%)',
+        'linear-gradient(135deg, #00b0ff 0%, #80d8ff 100%)'
     ];
 
     // DOM Elements
@@ -32,44 +37,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyState = document.getElementById('emptyState');
     const searchInput = document.getElementById('searchInput');
 
-    // Top Pick Hero Elements
+    // Hero Elements
     const topPickTitle = document.getElementById('topPickTitle');
     const topPickArtist = document.getElementById('topPickArtist');
     const topPickVoteNum = document.getElementById('topPickVoteNum');
+    const heroCover = document.getElementById('heroCover');
 
-    // Stats Elements
-    const totalVotesCount = document.getElementById('totalVotesCount');
+    // Controls
     const totalSongsCount = document.getElementById('totalSongsCount');
-
-    // Tool & Control Buttons
     const soundToggleBtn = document.getElementById('soundToggleBtn');
-    const soundIcon = document.getElementById('soundIcon');
     const soundLabel = document.getElementById('soundLabel');
     const loadSamplesBtn = document.getElementById('loadSamplesBtn');
     const clearAllBtn = document.getElementById('clearAllBtn');
     const emptyLoadBtn = document.getElementById('emptyLoadBtn');
-    const vinylIcon = document.getElementById('vinylIcon');
 
-    // Modal Elements
+    // Modal
     const confirmModal = document.getElementById('confirmModal');
     const cancelModalBtn = document.getElementById('cancelModalBtn');
     const confirmClearBtn = document.getElementById('confirmClearBtn');
 
     // --------------------------------------------------------------------------
-    // 2. Web Audio API Sound Synthesizer (Zero External Dependencies)
+    // Web Audio Synthesizer
     // --------------------------------------------------------------------------
     let audioCtx = null;
 
     function getAudioContext() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) {
-                audioCtx = new AudioContext();
-            }
+            if (AudioContext) audioCtx = new AudioContext();
         }
-        if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         return audioCtx;
     }
 
@@ -78,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const ctx = getAudioContext();
             if (!ctx) return;
-
             const now = ctx.currentTime;
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -87,59 +83,41 @@ document.addEventListener('DOMContentLoaded', () => {
             gain.connect(ctx.destination);
 
             if (type === 'vote') {
-                // High-energy upbeat synth chirp
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(440, now); // A4
-                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-                osc.start(now);
-                osc.stop(now + 0.12);
-
-            } else if (type === 'add') {
-                // Happy 2-tone chord (C5 -> G5)
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(523.25, now); // C5
-                osc.frequency.setValueAtTime(783.99, now + 0.08); // G5
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-                osc.start(now);
-                osc.stop(now + 0.25);
-
-            } else if (type === 'clear') {
-                // Downward swoosh
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(600, now);
-                osc.frequency.exponentialRampToValueAtTime(150, now + 0.25);
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1);
                 gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
                 osc.start(now);
-                osc.stop(now + 0.25);
-
-            } else if (type === 'spin') {
-                // Disc Scratch / Spin sound
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.linearRampToValueAtTime(1200, now + 0.1);
-                osc.frequency.linearRampToValueAtTime(200, now + 0.3);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.stop(now + 0.1);
+            } else if (type === 'add') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc.start(now);
-                osc.stop(now + 0.3);
+                osc.stop(now + 0.2);
+            } else if (type === 'clear') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(120, now + 0.2);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
             }
-        } catch (err) {
-            console.warn('Audio play failed:', err);
+        } catch (e) {
+            console.warn(e);
         }
     }
 
     function updateSoundUI() {
         if (isSoundEnabled) {
-            soundIcon.textContent = '🔊';
-            soundLabel.textContent = 'Sound FX ON';
+            soundLabel.textContent = 'Sound On';
             soundToggleBtn.classList.remove('muted');
         } else {
-            soundIcon.textContent = '🔇';
-            soundLabel.textContent = 'Sound FX OFF';
+            soundLabel.textContent = 'Sound Off';
             soundToggleBtn.classList.add('muted');
         }
     }
@@ -154,20 +132,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSoundUI();
 
     // --------------------------------------------------------------------------
-    // 3. LocalStorage Data Persistence
+    // Data Persistence
     // --------------------------------------------------------------------------
     function loadSongs() {
-        const savedData = localStorage.getItem(STORAGE_KEY);
-        if (savedData) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
             try {
-                songs = JSON.parse(savedData);
+                songs = JSON.parse(saved);
             } catch (e) {
-                console.error('Error parsing stored playlist data:', e);
-                songs = [...SAMPLE_PARTY_TRACKS];
+                songs = [...SAMPLE_TRACKS];
             }
         } else {
-            // Initial first time load with preloaded party hits
-            songs = [...SAMPLE_PARTY_TRACKS];
+            songs = [...SAMPLE_TRACKS];
             saveSongs();
         }
     }
@@ -177,48 +153,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --------------------------------------------------------------------------
-    // 4. Auto-Sort Algorithm & Rendering
+    // Auto-Sort & Rendering
     // --------------------------------------------------------------------------
     function sortSongs() {
-        // Sort descending by votes.
-        // If votes are equal, sort by creation time (newest first).
         songs.sort((a, b) => {
-            if (b.votes !== a.votes) {
-                return b.votes - a.votes;
-            }
+            if (b.votes !== a.votes) return b.votes - a.votes;
             return b.createdAt - a.createdAt;
         });
+    }
+
+    function getGradient(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % GRADIENTS.length;
+        return GRADIENTS[index];
     }
 
     function renderPlaylist() {
         sortSongs();
 
-        const searchQuery = searchInput.value.toLowerCase().trim();
-        const filteredSongs = songs.filter(song => {
-            const titleMatch = song.title.toLowerCase().includes(searchQuery);
-            const artistMatch = (song.artist || '').toLowerCase().includes(searchQuery);
-            return titleMatch || artistMatch;
-        });
+        const query = searchInput.value.toLowerCase().trim();
+        const filtered = songs.filter(s => 
+            s.title.toLowerCase().includes(query) || (s.artist || '').toLowerCase().includes(query)
+        );
 
-        // Update Total Stats
-        const totalVotes = songs.reduce((sum, s) => sum + s.votes, 0);
-        totalVotesCount.textContent = totalVotes.toLocaleString();
-        totalSongsCount.textContent = songs.length.toLocaleString();
+        totalSongsCount.textContent = songs.length;
 
-        // Update Top Pick Hero Section
+        // Top Hero Card
         if (songs.length > 0) {
-            const topSong = songs[0];
-            topPickTitle.textContent = topSong.title;
-            topPickArtist.textContent = topSong.artist ? `🎤 ${topSong.artist}` : '🎤 Unknown Artist';
-            topPickVoteNum.textContent = topSong.votes;
+            const topTrack = songs[0];
+            topPickTitle.textContent = topTrack.title;
+            topPickArtist.textContent = topTrack.artist || 'Unknown Artist';
+            topPickVoteNum.textContent = topTrack.votes;
+            heroCover.style.background = getGradient(topTrack.title);
         } else {
-            topPickTitle.textContent = 'No songs yet';
-            topPickArtist.textContent = 'Add a track below to start the party!';
+            topPickTitle.textContent = 'No track queued';
+            topPickArtist.textContent = 'Add a song below to start';
             topPickVoteNum.textContent = '0';
+            heroCover.style.background = GRADIENTS[0];
         }
 
-        // Handle Empty State
-        if (filteredSongs.length === 0) {
+        if (filtered.length === 0) {
             playlistContainer.innerHTML = '';
             emptyState.classList.remove('hidden');
             return;
@@ -226,179 +203,127 @@ document.addEventListener('DOMContentLoaded', () => {
             emptyState.classList.add('hidden');
         }
 
-        // Build HTML for playlist items
-        let htmlContent = '';
-        filteredSongs.forEach((song, index) => {
-            // Find overall rank in unsorted filtered view
-            const overallRank = songs.findIndex(s => s.id === song.id) + 1;
-            const rankClass = overallRank <= 3 ? `rank-${overallRank}` : '';
+        let html = '';
+        filtered.forEach((song) => {
+            const rank = songs.findIndex(s => s.id === song.id) + 1;
+            const rankClass = rank === 1 ? 'rank-1' : '';
+            const bgGrad = getGradient(song.title);
+            const initial = song.title.charAt(0).toUpperCase();
 
-            htmlContent += `
-                <div class="song-item ${rankClass}" data-id="${song.id}">
-                    <div class="song-rank-badge" title="Rank #${overallRank}">
-                        ${overallRank === 1 ? '👑' : overallRank}
+            html += `
+                <div class="track-item ${rankClass}" data-id="${song.id}">
+                    <div class="track-rank">${rank}</div>
+                    
+                    <div class="track-cover" style="background: ${bgGrad}">
+                        ${initial}
                     </div>
 
-                    <div class="song-main-info">
-                        <div class="song-title-text" title="${escapeHtml(song.title)}">
-                            ${escapeHtml(song.title)}
-                        </div>
-                        <div class="song-artist-text">
-                            ${song.artist ? `🎤 ${escapeHtml(song.artist)}` : '🎤 Unknown Artist'}
-                        </div>
+                    <div class="track-details">
+                        <div class="track-title" title="${escapeHtml(song.title)}">${escapeHtml(song.title)}</div>
+                        <div class="track-artist">${song.artist ? escapeHtml(song.artist) : 'Unknown Artist'}</div>
                     </div>
 
-                    <div class="song-actions">
-                        <div class="vote-badge" id="voteCount-${song.id}" title="Current Votes">
-                            ${song.votes}
-                        </div>
+                    <div class="track-actions">
+                        <div class="vote-pill" id="voteCount-${song.id}">${song.votes}</div>
 
-                        <button 
-                            class="upvote-btn" 
-                            data-action="upvote" 
-                            data-id="${song.id}" 
-                            aria-label="Upvote ${escapeHtml(song.title)}"
-                            title="Upvote track!"
-                        >
-                            👍
+                        <button class="upvote-action-btn" data-action="upvote" data-id="${song.id}" aria-label="Upvote track" title="Upvote track">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
                         </button>
 
-                        <button 
-                            class="delete-single-btn" 
-                            data-action="delete" 
-                            data-id="${song.id}" 
-                            aria-label="Remove ${escapeHtml(song.title)}"
-                            title="Remove song"
-                        >
-                            🗑️
+                        <button class="delete-action-btn" data-action="delete" data-id="${song.id}" aria-label="Remove track" title="Remove track">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                     </div>
                 </div>
             `;
         });
 
-        playlistContainer.innerHTML = htmlContent;
+        playlistContainer.innerHTML = html;
     }
 
     function escapeHtml(str) {
         if (!str) return '';
-        return str
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     // --------------------------------------------------------------------------
-    // 5. User Interaction Handlers
+    // Event Handlers
     // --------------------------------------------------------------------------
-
-    // Add Song Form Handler
     addSongForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        const title = songTitleInput.value.trim();
+        const artist = artistInput.value.trim();
 
-        const titleVal = songTitleInput.value.trim();
-        const artistVal = artistInput.value.trim();
-
-        // Validation
-        if (!titleVal) {
-            songTitleInput.classList.add('invalid');
+        if (!title) {
+            songTitleInput.classList.add('error');
             titleError.classList.add('visible');
             songTitleInput.focus();
             return;
         }
 
-        // Clear errors
-        songTitleInput.classList.remove('invalid');
+        songTitleInput.classList.remove('error');
         titleError.classList.remove('visible');
 
-        // Create new song record
-        const newSong = {
-            id: 'song_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-            title: titleVal,
-            artist: artistVal,
-            votes: 1, // Start with 1 vote from submitter
+        const newTrack = {
+            id: 'track_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            title: title,
+            artist: artist,
+            votes: 1,
             createdAt: Date.now()
         };
 
-        songs.push(newSong);
+        songs.push(newTrack);
         saveSongs();
         renderPlaylist();
-
-        // Sound & Animation
         playSound('add');
-        createParticleBurst(addSongBtn);
 
-        // Reset Form
         songTitleInput.value = '';
         artistInput.value = '';
         songTitleInput.focus();
     });
 
-    // Input error reset on typing
     songTitleInput.addEventListener('input', () => {
         if (songTitleInput.value.trim()) {
-            songTitleInput.classList.remove('invalid');
+            songTitleInput.classList.remove('error');
             titleError.classList.remove('visible');
         }
     });
 
-    // Delegation for Upvote & Individual Delete
     playlistContainer.addEventListener('click', (e) => {
         const upvoteBtn = e.target.closest('[data-action="upvote"]');
         const deleteBtn = e.target.closest('[data-action="delete"]');
 
         if (upvoteBtn) {
-            const songId = upvoteBtn.getAttribute('data-id');
-            handleUpvote(songId, upvoteBtn);
-        } else if (deleteBtn) {
-            const songId = deleteBtn.getAttribute('data-id');
-            handleDeleteSong(songId);
-        }
-    });
+            const id = upvoteBtn.getAttribute('data-id');
+            const song = songs.find(s => s.id === id);
+            if (song) {
+                song.votes += 1;
+                saveSongs();
+                playSound('vote');
 
-    function handleUpvote(songId, btnEl) {
-        const songIndex = songs.findIndex(s => s.id === songId);
-        if (songIndex !== -1) {
-            songs[songIndex].votes += 1;
-            saveSongs();
+                const pill = document.getElementById(`voteCount-${id}`);
+                if (pill) {
+                    pill.classList.remove('bump');
+                    void pill.offsetWidth;
+                    pill.classList.add('bump');
+                }
 
-            // Animate vote badge bump
-            const badgeEl = document.getElementById(`voteCount-${songId}`);
-            if (badgeEl) {
-                badgeEl.classList.remove('bump');
-                void badgeEl.offsetWidth; // Trigger reflow
-                badgeEl.classList.add('bump');
+                renderPlaylist();
             }
-
-            // Sound FX & Sparkles
-            playSound('vote');
-            createParticleBurst(btnEl);
-
-            // Re-render & Auto-sort
+        } else if (deleteBtn) {
+            const id = deleteBtn.getAttribute('data-id');
+            songs = songs.filter(s => s.id !== id);
+            saveSongs();
+            playSound('clear');
             renderPlaylist();
         }
-    }
-
-    function handleDeleteSong(songId) {
-        songs = songs.filter(s => s.id !== songId);
-        saveSongs();
-        playSound('clear');
-        renderPlaylist();
-    }
-
-    // Search Filter
-    searchInput.addEventListener('input', () => {
-        renderPlaylist();
     });
 
-    // Load Sample Hits
-    function loadSampleTracks() {
-        // Merge samples without duplicating by title
-        SAMPLE_PARTY_TRACKS.forEach(sample => {
-            const exists = songs.some(s => s.title.toLowerCase() === sample.title.toLowerCase());
-            if (!exists) {
+    searchInput.addEventListener('input', renderPlaylist);
+
+    function loadSamples() {
+        SAMPLE_TRACKS.forEach(sample => {
+            if (!songs.some(s => s.title.toLowerCase() === sample.title.toLowerCase())) {
                 songs.push({
                     ...sample,
                     id: 'sample_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
@@ -406,24 +331,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-
         saveSongs();
         playSound('add');
         renderPlaylist();
     }
 
-    loadSamplesBtn.addEventListener('click', loadSampleTracks);
-    emptyLoadBtn.addEventListener('click', loadSampleTracks);
+    loadSamplesBtn.addEventListener('click', loadSamples);
+    emptyLoadBtn.addEventListener('click', loadSamples);
 
-    // Vinyl Disc Click Fun Interaction
-    vinylIcon.addEventListener('click', () => {
-        playSound('spin');
-        createParticleBurst(vinylIcon);
-    });
-
-    // --------------------------------------------------------------------------
-    // 6. Clear All & Confirmation Modal
-    // --------------------------------------------------------------------------
+    // Modal
     clearAllBtn.addEventListener('click', () => {
         if (songs.length === 0) return;
         confirmModal.classList.remove('hidden');
@@ -431,13 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cancelModalBtn.addEventListener('click', () => {
         confirmModal.classList.add('hidden');
-    });
-
-    // Close modal on background click
-    confirmModal.addEventListener('click', (e) => {
-        if (e.target === confirmModal) {
-            confirmModal.classList.add('hidden');
-        }
     });
 
     confirmClearBtn.addEventListener('click', () => {
@@ -448,51 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPlaylist();
     });
 
-    // --------------------------------------------------------------------------
-    // 7. Visual Particle Explosion Effect
-    // --------------------------------------------------------------------------
-    function createParticleBurst(targetEl) {
-        if (!targetEl) return;
-        const rect = targetEl.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        const colors = ['#ff007f', '#00f3ff', '#ffd700', '#8c00ff', '#00ffaa'];
-
-        for (let i = 0; i < 14; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const size = Math.floor(Math.random() * 8) + 6; // 6-14px
-
-            // Random angle and distance
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * 60 + 20;
-            const dx = Math.cos(angle) * distance + 'px';
-            const dy = Math.sin(angle) * distance + 'px';
-
-            particle.style.left = centerX - size / 2 + 'px';
-            particle.style.top = centerY - size / 2 + 'px';
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            particle.style.backgroundColor = color;
-            particle.style.boxShadow = `0 0 10px ${color}`;
-            particle.style.setProperty('--dx', dx);
-            particle.style.setProperty('--dy', dy);
-
-            document.body.appendChild(particle);
-
-            setTimeout(() => {
-                particle.remove();
-            }, 800);
-        }
-    }
-
-    // --------------------------------------------------------------------------
-    // 8. App Launch Init
-    // --------------------------------------------------------------------------
     loadSongs();
     renderPlaylist();
-
 });
